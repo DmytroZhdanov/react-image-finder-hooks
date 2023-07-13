@@ -1,4 +1,3 @@
-import { Component } from 'react';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { Container, ErrorImg, ErrorMsg } from './App.styled';
@@ -7,100 +6,84 @@ import { fetchImages } from 'ApiService/ApiService';
 import { Button } from 'components/Button/Button';
 import { Loader } from 'components/Loader/Loader';
 import errorImg from '../../error.png';
+import { useState } from 'react';
+import { useEffect } from 'react';
 
-export class App extends Component {
-  state = {
-    images: [],
-    query: '',
-    status: 'idle',
-    modalImage: '',
-    page: 0,
-    totalPages: 0,
-  };
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState('idle');
+  const [modalImage, setModalImage] = useState('');
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
-  componentDidUpdate = async (_, prevState) => {
-    const { page, query } = this.state;
+  useEffect(() => {
+    if (query === '') return;
 
-    if (page !== prevState.page || query !== prevState.query) {
-      this.setStatus('pending');
-      try {
-        const { hits, totalHits } = await fetchImages(query, page);
+    setStatus('pending');
 
-        this.setState({
-          totalPages: totalHits / 12,
-        });
+    fetchImages(query, page)
+      .then(({ hits, totalHits }) => {
+        setTotalPages(totalHits / 12);
 
-        query === prevState.query
-          ? this.setState(prevState => {
-              return { images: [...prevState.images, ...hits] };
-            })
-          : this.setState({ images: hits });
+        page > 1
+          ? setImages(prevImages => [...prevImages, ...hits])
+          : setImages(hits);
         
-        this.setStatus(totalHits ? 'resolved' : 'rejected');
-      } catch (error) {
+        setStatus(totalHits ? 'resolved' : 'rejected');
+      })
+      .catch(error => {
         console.error(error.message);
-        this.setStatus('rejected');
-      }
+        setStatus('rejected');
+      });
+  }, [query, page]);
 
-      if (query !== prevState.query) {
-        window.scrollTo({
-          top: 0,
-          behavior: 'smooth',
-        });
-      }
-    }
-  };
-
-  handleSearch = query => {
-    this.setState({ images: [], page: 1, query });
-  };
-
-  handleLoadMore = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth',
     });
+  }, [query]);
+
+  const handleSearch = query => {
+    setImages([]);
+    setPage(1);
+    setQuery(query);
   };
 
-  setStatus = status => {
-    this.setState({ status });
+  const handleLoadMore = () => {
+    setPage(page + 1);
   };
 
-  setModalImg = (src, alt) => {
-    this.setState({ modalImage: { src, alt } });
+  const setModalImg = (src, alt) => {
+    setModalImage({ src, alt });
   };
 
-  resetModalImg = () => {
-    this.setState({ modalImage: '' });
+  const resetModalImg = () => {
+    setModalImage('');
   };
 
-  render() {
-    const { images, query, status, modalImage, page, totalPages } =
-      this.state;
-
-    return (
-      <Container>
-        <Searchbar onSearch={this.handleSearch} />
-        {(status === 'pending' || status === 'resolved') && (
-          <>
-            <ImageGallery images={images} setModalImg={this.setModalImg} />
-            {page < totalPages && status !== 'pending' && (
-              <Button onClick={this.handleLoadMore} />
-            )}
-            {status === 'pending' && <Loader />}
-          </>
-        )}
-        {status === 'rejected' && (
-          <>
-            <ErrorMsg>
-              Sorry... We couldn't find pictures matching "{query}"
-            </ErrorMsg>
-            <ErrorImg src={errorImg} alt="Error" />
-          </>
-        )}
-        {modalImage && (
-          <Modal image={modalImage} onClose={this.resetModalImg} />
-        )}
-      </Container>
-    );
-  }
-}
+  return (
+    <Container>
+      <Searchbar onSearch={handleSearch} />
+      {(status === 'pending' || status === 'resolved') && (
+        <>
+          <ImageGallery images={images} setModalImg={setModalImg} />
+          {page < totalPages && status !== 'pending' && (
+            <Button onClick={handleLoadMore} />
+          )}
+          {status === 'pending' && <Loader />}
+        </>
+      )}
+      {status === 'rejected' && (
+        <>
+          <ErrorMsg>
+            Sorry... We couldn't find pictures matching "{query}"
+          </ErrorMsg>
+          <ErrorImg src={errorImg} alt="Error" />
+        </>
+      )}
+      {modalImage && <Modal image={modalImage} onClose={resetModalImg} />}
+    </Container>
+  );
+};
