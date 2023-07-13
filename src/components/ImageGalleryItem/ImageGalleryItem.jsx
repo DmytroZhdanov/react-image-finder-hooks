@@ -1,24 +1,19 @@
 import PropTypes from 'prop-types';
-import { Component } from 'react';
 import { Btn, Image, Item } from './ImageGalleryItem.styled';
 
-export class ImageGalleryItem extends Component {
-  handleClick = (src, alt) => {
-    this.props.setModalImg(src, alt);
+export const ImageGalleryItem = ({ setModalImg, modalUrl, url, tags }) => {
+  const handleClick = (src, alt) => {
+    setModalImg(src, alt);
   };
 
-  render() {
-    const { modalUrl, url, tags } = this.props;
-
-    return (
-      <Item>
-        <Btn onClick={() => this.handleClick(modalUrl, tags)} type="button">
-          <Image src={url} alt={tags} />
-        </Btn>
-      </Item>
-    );
-  }
-}
+  return (
+    <Item>
+      <Btn onClick={() => handleClick(modalUrl, tags)} type="button">
+        <Image src={url} alt={tags} />
+      </Btn>
+    </Item>
+  );
+};
 
 ImageGalleryItem.propTypes = {
   modalUrl: PropTypes.string.isRequired,
